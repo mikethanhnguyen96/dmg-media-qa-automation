@@ -1,19 +1,39 @@
 // @ts-check
 const { defineConfig, devices } = require('@playwright/test');
 
+const isCI = !!process.env.CI;
+
 module.exports = defineConfig({
   testDir: './tests',
   fullyParallel: true,
-  forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
-  reporter: [['html', { open: 'never' }], ['list']],
+  forbidOnly: isCI,
+  retries: isCI ? 2 : 0,
+  workers: isCI ? 2 : undefined,
   timeout: 45_000,
+
+  expect: {
+    timeout: 10_000,
+  },
+
+  reporter: isCI
+    ? [
+        ['github'],
+        ['html', { open: 'never', outputFolder: 'playwright-report' }],
+        ['junit', { outputFile: 'test-results/junit-results.xml' }],
+      ]
+    : [
+        ['list'],
+        ['html', { open: 'on-failure', outputFolder: 'playwright-report' }],
+      ],
 
   use: {
     locale: 'en-GB',
     timezoneId: 'Europe/London',
-    trace: 'on-first-retry',
+    geolocation: { latitude: 51.5074, longitude: -0.1278 }, // London, UK
+    permissions: ['geolocation'],
+    actionTimeout: 15_000,
+    navigationTimeout: 20_000,
+    trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
   },
@@ -25,8 +45,8 @@ module.exports = defineConfig({
       use: {
         ...devices['iPhone 15'],
         browserName: 'chromium',
-        geolocation: { longitude: -0.1276, latitude: 51.5072 },
-        permissions: ['geolocation'],
+        isMobile: true,
+        hasTouch: true,
       },
     },
     {
